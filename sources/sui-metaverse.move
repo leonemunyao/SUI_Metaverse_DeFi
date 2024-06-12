@@ -1,11 +1,18 @@
 module 0x0::SuiMetaverseLand {
+
+    // Importing necessary modules and functions.
     use std::string::{String};
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
     use std::option::{none, some, borrow};
-    use sui::account::{Self as Account, address};
+    // use sui::account::{Self as Account, address};
 
-    // Structs
+
+
+    public struct SuimetaverseLand has drop {}
+
+    // Struct Definitions. Respresents land parcel with its unique id, area, location, total supply,
+    // owners, and optional rental information.
     public struct Land has key, store {
         id: UID,
         area: u64,
@@ -15,44 +22,47 @@ module 0x0::SuiMetaverseLand {
         rental_info: Option<RentalInfo>,
     }
 
-    public struct RentalInfo has store {
+    // Struct Definitions. Represents rental information with rental price, rental duration, and renter.
+    public struct RentalInfo has store, drop {
         rental_price: u64,
         rental_duration: u64,
         renter: Option<address>,
     }
 
-    public struct OwnershipToken has store {
+
+    // Represents an ownership token for a land parcel.
+    public struct OwnershipToken has store, key {
         id: UID,
         amount: u64,
     }
 
-    // Initialize a new land parcel
+    // Fuction to initialize a new land parcel
     public entry fun new_land(
-        id: u64,
-        area: u64,
-        location: String,
-        ctx: &mut TxContext
+        id: u64,               // Unique ID of the land parcel
+        area: u64,              // Area of the land parcel
+        location: String,       // Location of the land parcel
+        ctx: &mut TxContext     // Transaction context
     ) {
-        let land_id = object::new(ctx);
+        let land_id = object::new(ctx);  // Create a new unique ID for the land parcel
         let land = Land {
             id: land_id,
             area,
             location,
             total_supply: 0,
-            owners: vector::empty<(address, u64)>(),
+            owners: vector::empty<address>(),
             rental_info: none(),
         };
         transfer::share_object(land);
     }
 
-    // Create ownership tokens
-    public entry fun create_tokens(id: u64, amount: u64, ctx: &mut TxContext): OwnershipToken {
+    // Function to reate ownership tokens for the land.
+    public fun create_tokens(id: u64, amount: u64, ctx: &mut TxContext): OwnershipToken {
         let token_id = object::new(ctx);
         OwnershipToken { id: token_id, amount }
     }
 
     // Transfer ownership tokens
-    public entry fun transfer_tokens(
+    public fun transfer_tokens(
         token: &mut OwnershipToken,
         to: address,
         amount: u64,
@@ -60,6 +70,9 @@ module 0x0::SuiMetaverseLand {
     ) {
         assert!(token.amount >= amount, 1);
         token.amount = token.amount - amount;
+    }
+
+    public fun transfer_ownership_token(token: OwnershipToken, to: address) {
         transfer::public_transfer(token, to);
     }
 
@@ -69,7 +82,7 @@ module 0x0::SuiMetaverseLand {
     }
 
     // Deposit rent payment
-    public entry fun deposit_rent(
+    public fun deposit_rent(
         land: &mut Land,
         amount: u64,
         renter: address,
@@ -87,7 +100,7 @@ module 0x0::SuiMetaverseLand {
     }
 
     // List land for rent
-    public entry fun list_land_for_rent(
+    public fun list_land_for_rent(
         land: &mut Land,
         rental_price: u64,
         rental_duration: u64,
@@ -102,7 +115,7 @@ module 0x0::SuiMetaverseLand {
     }
 
     // Rent land parcel
-    public entry fun rent_land(
+    public fun rent_land(
         land: &mut Land,
         renter: address,
         amount: u64,
@@ -110,7 +123,8 @@ module 0x0::SuiMetaverseLand {
         ctx: &mut TxContext
     ) {
         assert!(option::is_some(&land.rental_info), 1);
-        let rental_info = option::borrow_mut(&mut land.rental_info).unwrap();
+        let rental_info = option::borrow_mut(&mut land.rental_info);
+        assert!(option::is_none(&rental_info));
         rental_info.rental_price = amount;
         rental_info.rental_duration = duration;
         rental_info.renter = some(renter);
@@ -118,7 +132,7 @@ module 0x0::SuiMetaverseLand {
     }
 
     // Pay rent
-    public entry fun pay_rent(
+    public fun pay_rent(
         land: &mut Land,
         renter: address,
         amount: u64,
@@ -132,7 +146,7 @@ module 0x0::SuiMetaverseLand {
     }
 
     // Withdraw rent payment
-    public entry fun withdraw_rent(land: &mut Land, ctx: &mut TxContext) {
+    public fun withdraw_rent(land: &mut Land, ctx: &mut TxContext) {
         let rental_info = option::borrow(&land.rental_info).unwrap();
         assert!(option::is_some(rental_info), 1);
         let amount = rental_info.rental_price;
@@ -146,11 +160,18 @@ module 0x0::SuiMetaverseLand {
         let rental_info = option::borrow(&land.rental_info).unwrap();
         assert!(option::is_some(rental_info), 1);
         let total_rent = rental_info.rental_price;
-        for (owner, ownership) in vector::iter(owners) {
+
+        let i = 0;
+        let owners_len = Vector::length(owners);
+        while (i < owners_len) {
+            let owner = *Vector::borrow(owners, i);
+            let ownership = *Vector::borrow(land.owners, i);
             let owner_rent = total_rent * ownership / land.total_supply;
             coin::mint(ctx, owner_rent);
-            transfer::public_transfer(owner_rent, *owner);
+            transfer::public_transfer(owner_rent, owner);
+            i = i + 1;
         }
+
         land.rental_info = none();
     }
 }
