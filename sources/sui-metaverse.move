@@ -81,6 +81,18 @@ module 0x0::SuiMetaverseLand {
         token.amount
     }
 
+
+    public fun unlock(ctx: &mut TxContext, land_id: UID, account_addr: address) {
+        // Example logic:
+        // 1. Verify that the land exists and the caller has the right to unlock coins.
+        // 2. Verify that coins are indeed locked for this land parcel.
+        // 3. Update the coin balance to reflect the unlocked coins.
+
+        // This is a placeholder for the actual implementation.
+        // You would need to interact with the sui::coin and sui::balance modules
+        // to manipulate the coin balances, depending on how you've implemented locking.
+    }
+
     // Deposit rent payment
     public fun deposit_rent(
         land: &mut Land,
