@@ -157,6 +157,11 @@ module 0x0::SuiMetaverseLand {
         distribute_rent(land, ctx);
     }
 
+    public fun unlock(
+        land: &mut Land,
+        ctx: &mut TxContext
+    )
+
     // Withdraw rent payment
     public fun withdraw_rent(land: &mut Land, ctx: &mut TxContext) {
         let rental_info = option::borrow(&land.rental_info).unwrap();
